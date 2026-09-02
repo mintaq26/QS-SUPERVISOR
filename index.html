@@ -462,34 +462,82 @@ function trendChart(b){
     </svg></div>`}
 function noteCard(n){
   const tags=[];if(n.visitType)tags.push(n.visitType);if(n.facilities)tags.push('مرافق: '+n.facilities);
-  const ex=n.school||n.teachers||n.principal||n.ideas||'';
+  const entries=n.teacherEntries||[];
+  const names=entries.map(t=>t.name).filter(Boolean);
+  const ex=n.school||n.principal||n.ideas||'';
   return `<div class="card tap note-card" onclick="openNote('${n.id}')"><div class="nh"><div style="flex:1">
     <div class="tagrow">${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div>
     <span class="note-date">${esc(n.date)}</span></div>
     ${n.overall?`<div class="stars">${stars(n.overall)}</div>`:''}
+    ${names.length?`<div class="tagrow" style="margin-top:9px">${names.map(nm=>`<span class="tag" style="background:var(--gold-soft);color:var(--gold-d)">👩‍🏫 ${esc(nm)}</span>`).join('')}</div>`:(entries.length?`<div style="font-size:12.5px;color:var(--ink2);margin-top:9px">${entries.length} معلمة</div>`:'')}
     ${ex?`<div class="note-excerpt">${esc(ex)}</div>`:''}</div>`}
 function branchAvg(b){const r=b.notes.filter(n=>n.overall).map(n=>n.overall);
   return r.length?(r.reduce((a,c)=>a+c,0)/r.length).toFixed(1):null}
 function stars(v){v=Math.round(v);return '★'.repeat(v)+'☆'.repeat(5-v)}
 
 let noteDraft={};
+function migrateNote(n){
+  if(!n.teacherEntries){
+    n.teacherEntries=[];
+    if((n.strengths&&n.strengths.length)||(n.needs&&n.needs.length)||n.performance||n.teachers){
+      n.teacherEntries.push({name:(n.teachers&&n.teachers.length<40?n.teachers:'')||'',
+        performance:n.performance||'',strengths:n.strengths||[],needs:n.needs||[],
+        notes:(n.teachers&&n.teachers.length>=40)?n.teachers:''});
+    }
+  }
+  return n}
 function editNote(id){
-  const n=id?curBranch.notes.find(x=>x.id===id):{date:today(),visitType:'',overall:0,facilities:'',school:'',teachers:'',principal:'',performance:'',strengths:[],needs:[],ideas:''};
-  noteDraft=JSON.parse(JSON.stringify(n));const L=U.lists;
+  const n=id?migrateNote(curBranch.notes.find(x=>x.id===id)):{date:today(),visitType:'',overall:0,facilities:'',school:'',principal:'',ideas:'',teacherEntries:[]};
+  noteDraft=JSON.parse(JSON.stringify(n));
+  if(!noteDraft.teacherEntries)noteDraft.teacherEntries=[];
+  const L=U.lists;
   openSheet(id?'تعديل الملاحظة':'ملاحظة زيارة جديدة',`
     <div class="field-group"><label>تاريخ الزيارة</label><input id="nDate" type="date" class="fld" value="${dateISO(n.date)}"></div>
     <div class="field-group"><label>نوع الزيارة <span class="hint">اختر من القائمة</span></label>${choicePicker('visitType',L.visitType,n.visitType,false)}</div>
-    <div class="field-group"><label>التقييم العام</label>${segRate('overall',n.overall)}</div>
+    <div class="field-group"><label>التقييم العام للزيارة</label>${segRate('overall',n.overall)}</div>
     <div class="field-group"><label>ملاحظات عن المدرسة (المبنى والبيئة)</label><textarea id="nSchool" class="fld">${esc(n.school)}</textarea></div>
     <div class="field-group"><label>حالة المرافق <span class="hint">اختر</span></label>${choicePicker('facilities',L.facilities,n.facilities,false)}</div>
-    <div class="field-group"><label>ملاحظات عن المعلمات</label><textarea id="nTeachers" class="fld">${esc(n.teachers)}</textarea></div>
     <div class="field-group"><label>ملاحظات عن مدير المدرسة</label><textarea id="nPrincipal" class="fld">${esc(n.principal)}</textarea></div>
-    <div class="field-group"><label>الأداء والممارسات الصفية</label><textarea id="nPerf" class="fld">${esc(n.performance)}</textarea></div>
-    <div class="field-group"><label>نقاط القوة <span class="hint">اختر عدة</span></label>${choicePicker('strengths',L.strengths,n.strengths,true)}</div>
-    <div class="field-group"><label>جوانب تحتاج تطوير <span class="hint">اختر عدة</span></label>${choicePicker('needs',L.needs,n.needs,true)}</div>
-    <div class="field-group"><label>أفكار وتوصيات إضافية</label><textarea id="nIdeas" class="fld" placeholder="أي ملاحظة أو توصية أخرى...">${esc(n.ideas)}</textarea></div>
+
+    <div style="background:var(--gold-soft);border-radius:16px;padding:14px 15px;margin-bottom:18px">
+      <label style="margin:0 0 4px;font-size:14.5px;color:var(--gold-d);font-weight:800">👩‍🏫 ملاحظات المعلمات</label>
+      <p style="font-size:12px;color:var(--ink2);margin:0 0 12px">أضف معلمة واحدة أو أكثر، ولكل معلمة نقاط قوتها وجوانب تطويرها.</p>
+      <div id="teacherList"></div>
+      <button type="button" onclick="addTeacherEntry()" style="width:100%;padding:12px;border-radius:12px;border:1.5px dashed var(--gold);background:transparent;color:var(--gold-d);font-weight:800;font-size:14px;margin-top:4px">+ إضافة معلمة</button>
+    </div>
+
+    <div class="field-group"><label>أفكار وتوصيات عامة <span class="hint">على مستوى الفرع</span></label><textarea id="nIdeas" class="fld" placeholder="أي توصية عامة للفرع...">${esc(n.ideas)}</textarea></div>
     <div class="rowbtns">${id?`<button class="danger" onclick="delNote('${id}')">🗑 حذف</button>`:''}
-      <button class="primary" onclick="saveNote('${id||''}')">${id?'حفظ التعديلات':'حفظ الملاحظة'}</button></div>`)}
+      <button class="primary" onclick="saveNote('${id||''}')">${id?'حفظ التعديلات':'حفظ الملاحظة'}</button></div>`);
+  renderTeacherEntries()}
+
+function addTeacherEntry(){noteDraft.teacherEntries.push({name:'',performance:'',strengths:[],needs:[],notes:''});renderTeacherEntries();
+  setTimeout(()=>{const els=document.querySelectorAll('#teacherList .tentry');const last=els[els.length-1];if(last)last.querySelector('input').focus()},60)}
+function removeTeacherEntry(i){noteDraft.teacherEntries.splice(i,1);renderTeacherEntries()}
+function renderTeacherEntries(){
+  const host=document.getElementById('teacherList');if(!host)return;const L=U.lists;
+  const names=branchTeacherNames(curBranch);
+  if(!noteDraft.teacherEntries.length){host.innerHTML=`<div style="text-align:center;color:var(--ink3);font-size:12.5px;padding:8px 0 14px">لم تُضف معلمة بعد</div>`;return}
+  host.innerHTML=noteDraft.teacherEntries.map((t,i)=>`
+    <div class="tentry" style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:11px">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:11px">
+        <span style="width:26px;height:26px;border-radius:8px;background:var(--grad-gold);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0">${i+1}</span>
+        <input list="teacherNames" class="fld" style="flex:1;padding:10px 12px" placeholder="اسم المعلمة" value="${esc(t.name)}" oninput="noteDraft.teacherEntries[${i}].name=this.value">
+        <button type="button" onclick="removeTeacherEntry(${i})" style="width:34px;height:34px;border-radius:9px;background:#f2e6e3;color:var(--danger);font-size:17px;flex-shrink:0">×</button>
+      </div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:7px">نقاط القوة</div>
+      ${teacherChoices('strengths',L.strengths,t.strengths,i)}
+      <div style="font-size:12.5px;font-weight:700;color:var(--ink);margin:12px 0 7px">جوانب تحتاج تطوير</div>
+      ${teacherChoices('needs',L.needs,t.needs,i)}
+      <div style="font-size:12.5px;font-weight:700;color:var(--ink);margin:12px 0 7px">ملاحظة إضافية عن أدائها <span style="font-weight:500;color:var(--ink3)">(اختياري)</span></div>
+      <textarea class="fld" style="min-height:64px" placeholder="ملاحظة حرة..." oninput="noteDraft.teacherEntries[${i}].notes=this.value">${esc(t.notes||'')}</textarea>
+    </div>`).join('')+
+    `<datalist id="teacherNames">${names.map(nm=>`<option value="${esc(nm)}">`).join('')}</datalist>`}
+function teacherChoices(field,opts,val,idx){const sel=val||[];
+  return `<div class="choices">${opts.map(o=>`<button type="button" class="${sel.includes(o)?'on':''}" onclick="toggleTeacherChoice(${idx},'${field}',this)">${esc(o)}</button>`).join('')}</div>`}
+function toggleTeacherChoice(idx,field,el){el.classList.toggle('on');
+  noteDraft.teacherEntries[idx][field]=[...el.parentElement.querySelectorAll('button.on')].map(b=>b.textContent)}
+function branchTeacherNames(b){const s=new Set();(b.notes||[]).forEach(n=>(n.teacherEntries||[]).forEach(t=>{if(t.name)s.add(t.name)}));return[...s]}
 function choicePicker(field,opts,val,multi){
   const sel=multi?(val||[]):(val?[val]:[]);
   return `<div class="choices" data-field="${field}">${opts.map(o=>`<button class="${sel.includes(o)?'on':''}" onclick="pickChoice(this,'${field}',${multi})">${esc(o)}</button>`).join('')}</div>${multi?'<div class="multi-hint">يمكن اختيار أكثر من خيار</div>':''}`}
@@ -503,9 +551,13 @@ function pickRate(el,field,v){const on=el.classList.contains('on');
   if(!on){el.classList.add('on');noteDraft[field]=v}else noteDraft[field]=0}
 function saveNote(id){
   const d=nDate.value;if(!d)return toast('يرجى تحديد تاريخ الزيارة');
+  const entries=(noteDraft.teacherEntries||[]).map(t=>({
+    name:(t.name||'').trim(),performance:(t.performance||'').trim(),
+    strengths:t.strengths||[],needs:t.needs||[],notes:(t.notes||'').trim()
+  })).filter(t=>t.name||t.strengths.length||t.needs.length||t.notes||t.performance);
   const data={date:dateHuman(d),visitType:noteDraft.visitType||'',overall:noteDraft.overall||0,facilities:noteDraft.facilities||'',
-    school:nSchool.value.trim(),teachers:nTeachers.value.trim(),principal:nPrincipal.value.trim(),
-    performance:nPerf.value.trim(),strengths:noteDraft.strengths||[],needs:noteDraft.needs||[],ideas:nIdeas.value.trim(),iso:d};
+    school:nSchool.value.trim(),principal:nPrincipal.value.trim(),
+    teacherEntries:entries,ideas:nIdeas.value.trim(),iso:d};
   if(id)Object.assign(curBranch.notes.find(x=>x.id===id),data);
   else curBranch.notes.push({id:uid(),...data});
   curBranch.notes.sort((a,b)=>(b.iso||'').localeCompare(a.iso||''));
@@ -514,21 +566,33 @@ function delNote(id){if(!confirm('حذف هذه الملاحظة نهائياً�
   curBranch.notes=curBranch.notes.filter(x=>x.id!==id);save();closeSheet();openBranch(curBranch.id);toast('تم الحذف')}
 
 function openNote(id){
-  const n=curBranch.notes.find(x=>x.id===id);if(!n)return;curNote=n;
+  const n=migrateNote(curBranch.notes.find(x=>x.id===id));if(!n)return;curNote=n;
   ['Branches','Stats','Settings','Branch'].forEach(x=>document.getElementById('view'+x).classList.add('hide'));
   const v=document.getElementById('viewNote');v.classList.remove('hide');
   document.getElementById('fab').style.display='none';
   document.getElementById('topTitle').textContent='تفاصيل الزيارة';
   const blk=(t,val,ico)=>val?`<div class="detail-block"><h4><span class="dot"></span>${ico} ${t}</h4><p>${esc(val)}</p></div>`:'';
-  const chips=(t,arr,ico)=>arr&&arr.length?`<div class="detail-block"><h4><span class="dot"></span>${ico} ${t}</h4><div class="tagrow">${arr.map(a=>`<span class="tag">${esc(a)}</span>`).join('')}</div></div>`:'';
+  const entries=n.teacherEntries||[];
+  let teacherHTML='';
+  if(entries.length){
+    teacherHTML=`<div class="section-title" style="margin:18px 2px 12px"><div><h3 style="font-size:17px">👩‍🏫 المعلمات</h3><p>${entries.length} معلمة في هذه الزيارة</p></div></div>`;
+    teacherHTML+=entries.map((t,i)=>`<div class="detail-block" style="border-right:3px solid var(--gold)">
+      <h4 style="font-size:15px"><span style="width:24px;height:24px;border-radius:7px;background:var(--grad-gold);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800">${i+1}</span> ${esc(t.name||'معلمة')}</h4>
+      ${t.strengths&&t.strengths.length?`<div style="margin-bottom:9px"><div style="font-size:12.5px;color:var(--ink2);font-weight:700;margin-bottom:6px">✅ نقاط القوة</div><div class="tagrow">${t.strengths.map(s=>`<span class="tag" style="background:#eef2ea;color:#5a7a55">${esc(s)}</span>`).join('')}</div></div>`:''}
+      ${t.needs&&t.needs.length?`<div style="margin-bottom:9px"><div style="font-size:12.5px;color:var(--ink2);font-weight:700;margin-bottom:6px">🎯 جوانب التطوير</div><div class="tagrow">${t.needs.map(s=>`<span class="tag" style="background:#f4ece4;color:#a5744c">${esc(s)}</span>`).join('')}</div></div>`:''}
+      ${t.performance?`<div style="margin-bottom:6px"><div style="font-size:12.5px;color:var(--ink2);font-weight:700;margin-bottom:4px">الأداء الصفي</div><p style="margin:0;font-size:13.5px;color:var(--ink2);line-height:1.7">${esc(t.performance)}</p></div>`:''}
+      ${t.notes?`<p style="margin:6px 0 0;font-size:13.5px;color:var(--ink2);line-height:1.7">${esc(t.notes)}</p>`:''}
+    </div>`).join('');
+  }
   v.innerHTML=`<button class="backbtn" onclick="openBranch('${curBranch.id}')">${backIcon()} عودة لسجل ${esc(curBranch.name)}</button>
     <div class="card"><div class="nh"><div><b style="font-size:16px">${esc(curBranch.name)}</b>
       <div style="font-size:12.5px;color:var(--ink2);margin-top:2px">${esc(n.visitType||'زيارة')}</div></div>
       <span class="note-date">${esc(n.date)}</span></div>
       ${n.overall?`<div style="margin-top:12px"><span style="font-size:13px;color:var(--ink2)">التقييم العام: </span><span class="stars" style="font-size:18px">${stars(n.overall)}</span> <b>${n.overall}/5</b></div>`:''}
       ${n.facilities?`<div class="kv" style="margin-top:8px"><span>حالة المرافق</span><b>${esc(n.facilities)}</b></div>`:''}</div>
-    ${blk('المدرسة والبيئة',n.school,'🏫')}${blk('المعلمات',n.teachers,'👩‍🏫')}${blk('مدير المدرسة',n.principal,'👤')}
-    ${blk('الأداء والممارسات الصفية',n.performance,'📈')}${chips('نقاط القوة',n.strengths,'✅')}${chips('جوانب تحتاج تطوير',n.needs,'🎯')}${blk('أفكار وتوصيات',n.ideas,'💡')}
+    ${blk('المدرسة والبيئة',n.school,'🏫')}${blk('مدير المدرسة',n.principal,'👤')}
+    ${teacherHTML}
+    ${blk('أفكار وتوصيات عامة',n.ideas,'💡')}
     <div class="rowbtns"><button onclick="editNote('${n.id}')">✎ تعديل</button>
       <button onclick="shareNote('${n.id}')">📤 مشاركة</button>
       <button class="dark wide" onclick="exportPDF('${n.id}')">📄 تصدير التقرير PDF</button></div>`}
@@ -536,9 +600,14 @@ function shareNote(id){const n=curNote;
   let t=`تقرير زيارة إشرافية\n=================\nالفرع: ${curBranch.name}\nالتاريخ: ${n.date}\n`;
   if(n.visitType)t+=`نوع الزيارة: ${n.visitType}\n`;if(n.overall)t+=`التقييم العام: ${n.overall}/5\n`;if(n.facilities)t+=`المرافق: ${n.facilities}\n`;
   const add=(l,val)=>{if(val)t+=`\n${l}:\n${val}\n`};
-  add('المدرسة',n.school);add('المعلمات',n.teachers);add('المدير',n.principal);add('الأداء',n.performance);
-  if(n.strengths&&n.strengths.length)t+=`\nنقاط القوة: ${n.strengths.join('، ')}\n`;
-  if(n.needs&&n.needs.length)t+=`جوانب التطوير: ${n.needs.join('، ')}\n`;add('توصيات',n.ideas);
+  add('المدرسة',n.school);add('المدير',n.principal);
+  (n.teacherEntries||[]).forEach((te,i)=>{
+    t+=`\n— المعلمة ${i+1}: ${te.name||'—'}\n`;
+    if(te.strengths&&te.strengths.length)t+=`  نقاط القوة: ${te.strengths.join('، ')}\n`;
+    if(te.needs&&te.needs.length)t+=`  جوانب التطوير: ${te.needs.join('، ')}\n`;
+    if(te.performance)t+=`  الأداء: ${te.performance}\n`;
+    if(te.notes)t+=`  ملاحظة: ${te.notes}\n`});
+  add('توصيات عامة',n.ideas);
   if(navigator.share)navigator.share({text:t}).catch(()=>{});
   else{navigator.clipboard?.writeText(t);toast('تم نسخ التقرير')}}
 
@@ -548,11 +617,19 @@ function logoDataURL(){return new Promise(res=>{
     c.getContext('2d').drawImage(img,0,0);try{res(c.toDataURL('image/png'))}catch(e){res(null)}};
   img.onerror=()=>res(null);img.src='logo.png'})}
 async function exportPDF(id){
-  const n=curBranch.notes.find(x=>x.id===id);if(!n)return;
+  const n=migrateNote(curBranch.notes.find(x=>x.id===id));if(!n)return;
   if(!window.jspdf||!window.html2canvas){toast('تصدير PDF يحتاج اتصالاً بالإنترنت أول مرة');return}
   toast('جارٍ إنشاء التقرير...');const logo=await logoDataURL();
   const row=(label,val)=>val?`<tr><td style="width:130px;padding:9px 12px;background:#f2ecdd;font-weight:700;color:#3a3f4b;border:1px solid #e0d8c4;vertical-align:top">${label}</td><td style="padding:9px 12px;border:1px solid #e0d8c4;color:#2b3038;line-height:1.7;white-space:pre-wrap">${esc(val)}</td></tr>`:'';
-  const chipsRow=(label,arr)=>arr&&arr.length?row(label,arr.join(' • ')):'';
+  const entries=n.teacherEntries||[];
+  const teacherBlocks=entries.length?`<div style="font-size:15px;font-weight:800;color:#3a3f4b;margin:20px 0 10px;padding-bottom:6px;border-bottom:2px solid #f2ecdd">👩‍🏫 ملاحظات المعلمات (${entries.length})</div>`+
+    entries.map((t,i)=>`<div style="border:1px solid #e0d8c4;border-right:3px solid #b89b5e;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:800;color:#3a3f4b;margin-bottom:8px">${i+1}. ${esc(t.name||'معلمة')}</div>
+      ${t.strengths&&t.strengths.length?`<div style="font-size:12.5px;margin-bottom:5px"><b style="color:#5a7a55">نقاط القوة:</b> <span style="color:#2b3038">${esc(t.strengths.join(' • '))}</span></div>`:''}
+      ${t.needs&&t.needs.length?`<div style="font-size:12.5px;margin-bottom:5px"><b style="color:#a5744c">جوانب التطوير:</b> <span style="color:#2b3038">${esc(t.needs.join(' • '))}</span></div>`:''}
+      ${t.performance?`<div style="font-size:12.5px;margin-bottom:5px"><b style="color:#646c78">الأداء الصفي:</b> <span style="color:#2b3038">${esc(t.performance)}</span></div>`:''}
+      ${t.notes?`<div style="font-size:12.5px;color:#2b3038;line-height:1.7">${esc(t.notes)}</div>`:''}
+    </div>`).join(''):'';
   const html=`<div id="pdfDoc" style="width:720px;padding:36px 40px;background:#fff;font-family:'Tajawal',Tahoma,sans-serif;direction:rtl;color:#2c313a">
     <div style="display:flex;align-items:center;gap:16px;border-bottom:3px solid #b89b5e;padding-bottom:16px">
       ${logo?`<img src="${logo}" style="width:64px;height:64px;object-fit:contain">`:''}
@@ -563,7 +640,8 @@ async function exportPDF(id){
       <div style="flex:1;background:#f0f2f5;border-radius:10px;padding:12px 14px"><div style="font-size:11px;color:#646c78">الفرع</div><div style="font-size:16px;font-weight:800;color:#3a3f4b">${esc(curBranch.name)}</div><div style="font-size:11px;color:#646c78">${esc(curBranch.stage||'')} ${curBranch.location?'· '+esc(curBranch.location):''}</div></div>
       ${n.overall?`<div style="width:140px;background:#f2ecdd;border-radius:10px;padding:12px 14px;text-align:center"><div style="font-size:11px;color:#646c78">التقييم العام</div><div style="font-size:20px;color:#b89b5e;letter-spacing:2px">${stars(n.overall)}</div><div style="font-size:12px;font-weight:700;color:#3a3f4b">${n.overall} من 5</div></div>`:''}</div>
     <table style="width:100%;border-collapse:collapse;font-size:13.5px">
-      ${row('نوع الزيارة',n.visitType)}${row('حالة المرافق',n.facilities)}${row('المدرسة والبيئة',n.school)}${row('المعلمات',n.teachers)}${row('مدير المدرسة',n.principal||curBranch.principal)}${row('الأداء الصفي',n.performance)}${chipsRow('نقاط القوة',n.strengths)}${chipsRow('جوانب التطوير',n.needs)}${row('أفكار وتوصيات',n.ideas)}</table>
+      ${row('نوع الزيارة',n.visitType)}${row('حالة المرافق',n.facilities)}${row('المدرسة والبيئة',n.school)}${row('مدير المدرسة',n.principal||curBranch.principal)}${row('أفكار وتوصيات عامة',n.ideas)}</table>
+    ${teacherBlocks}
     <div style="margin-top:24px;display:flex;justify-content:space-between;font-size:11px;color:#98a0ab;border-top:1px solid #e3e6ea;padding-top:12px"><span>المشرف: ${esc(U.name)}</span><span>سجل المتابعة — نظام الإشراف المدرسي</span></div></div>`;
   const holder=document.createElement('div');holder.style.cssText='position:fixed;left:-9999px;top:0';holder.innerHTML=html;document.body.appendChild(holder);
   try{const canvas=await html2canvas(holder.querySelector('#pdfDoc'),{scale:2,backgroundColor:'#fff'});
@@ -583,8 +661,12 @@ function renderStats(){
   const dist=[0,0,0,0,0];rated.forEach(r=>dist[r-1]++);
   const distMax=Math.max(1,...dist);
   const ranked=U.branches.filter(b=>b.notes.some(n=>n.overall)).map(b=>({name:b.name,color:b.color,avg:+branchAvg(b),cnt:b.notes.length})).sort((a,c)=>c.avg-a.avg).slice(0,5);
-  const freq={};U.branches.forEach(b=>b.notes.forEach(n=>(n.needs||[]).forEach(x=>freq[x]=(freq[x]||0)+1)));
+  const freq={};const teacherSet=new Set();
+  U.branches.forEach(b=>b.notes.forEach(n=>(n.teacherEntries||[]).forEach(te=>{
+    if(te.name)teacherSet.add(b.id+'|'+te.name);
+    (te.needs||[]).forEach(x=>freq[x]=(freq[x]||0)+1)})));
   const topNeeds=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const nTeachers=teacherSet.size;
   const health=rated.length?Math.round(avg/5*100):0;
 
   let h=`<div class="section-title"><div><h3>لوحة المتابعة</h3><p>ملخّص حيّ لأداء الأفرع</p></div></div>
@@ -597,7 +679,7 @@ function renderStats(){
       <div class="stat"><div class="ic" style="background:var(--gold-soft);color:var(--gold-d)">🏫</div><div class="n">${nB}</div><div class="l">فرع مُشرَف عليه</div></div>
       <div class="stat"><div class="ic" style="background:var(--silver-soft);color:var(--silver)">📝</div><div class="n">${nN}</div><div class="l">ملاحظة زيارة</div></div>
       <div class="stat"><div class="ic" style="background:var(--gold-soft);color:var(--gold-d)">⭐</div><div class="n">${avgTxt}</div><div class="l">متوسط التقييم</div></div>
-      <div class="stat"><div class="ic" style="background:#f2e6e3;color:var(--danger)">⏳</div><div class="n">${noVisit}</div><div class="l">فرع بانتظار زيارة</div></div>
+      <div class="stat"><div class="ic" style="background:var(--silver-soft);color:var(--silver)">👩‍🏫</div><div class="n">${nTeachers}</div><div class="l">معلمة متابَعة</div></div>
     </div>`;
 
   if(rated.length){
