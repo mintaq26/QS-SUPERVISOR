@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#3a3f4b">
+<meta name="description" content="سجل المتابعة — نظام الإشراف والملاحظات المدرسية">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<title>سجل المتابعة — نظام الإشراف المدرسي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{
+  --gold:#b89b5e; --gold-d:#9d8347; --gold-l:#d4bd85; --gold-soft:#f2ecdd;
+  --silver:#8c95a3; --silver-l:#c3cad4; --silver-soft:#eef1f5;
+  --charcoal:#3a3f4b; --charcoal-d:#2b2f38; --charcoal-l:#4e5563;
+  --paper:#f4f5f7; --surface:#ffffff; --surface2:#f0f2f5;
+  --line:#e3e6ea; --line2:#d0d5dc;
+  --ink:#2c313a; --ink2:#646c78; --ink3:#98a0ab;
+  --ok:#6f8f6a; --danger:#c07a6f;
+  --r:14px; --r-lg:20px;
+  --grad-gold:linear-gradient(145deg,var(--gold-l),var(--gold-d));
+  --grad-dark:linear-gradient(150deg,var(--charcoal-l),var(--charcoal-d));
+  --sh-sm:0 1px 3px rgba(44,49,58,.07),0 1px 2px rgba(44,49,58,.05);
+  --sh:0 4px 16px rgba(44,49,58,.09);
+  --sh-lg:0 14px 44px rgba(44,49,58,.18);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:'Tajawal',system-ui,Tahoma,sans-serif;background:var(--paper);color:var(--ink);
+  min-height:100vh;-webkit-text-size-adjust:100%;line-height:1.5}
+button{font-family:inherit;cursor:pointer;border:0;background:none}
+input,select,textarea{font-family:inherit;font-size:16px}
+.hide{display:none!important}
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-thumb{background:var(--silver-l);border-radius:8px}
+
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:linear-gradient(160deg,var(--charcoal) 0%,var(--charcoal-d) 60%,#23262d 100%);position:relative;overflow:hidden}
+.auth-wrap::before{content:"";position:absolute;width:420px;height:420px;top:-160px;left:-130px;border-radius:50%;
+  background:radial-gradient(circle,var(--gold),transparent 68%);opacity:.14}
+.auth-wrap::after{content:"";position:absolute;width:340px;height:340px;bottom:-150px;right:-110px;border-radius:50%;
+  background:radial-gradient(circle,var(--silver-l),transparent 70%);opacity:.08}
+.auth-card{width:100%;max-width:410px;background:var(--surface);border-radius:26px;box-shadow:var(--sh-lg);
+  padding:32px 28px 30px;position:relative;z-index:2}
+.auth-logo-wrap{width:112px;height:112px;margin:0 auto 10px;border-radius:26px;background:var(--surface);
+  display:grid;place-items:center;box-shadow:0 6px 20px rgba(44,49,58,.1);border:1px solid var(--line);padding:12px}
+.auth-logo-wrap img{width:100%;height:100%;object-fit:contain;display:block}
+.auth-card h1{font-size:26px;margin:4px 0 2px;text-align:center;font-weight:800;letter-spacing:-.5px;color:var(--charcoal)}
+.auth-card .sub{text-align:center;color:var(--ink2);font-size:13px;margin-bottom:3px}
+.auth-card .org{text-align:center;color:var(--gold-d);font-size:12.5px;font-weight:700;margin-bottom:6px}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--line2),transparent);margin:16px 0 2px}
+.tabs{display:flex;background:var(--surface2);border-radius:14px;padding:4px;margin:20px 0}
+.tabs button{flex:1;padding:12px;border-radius:11px;font-size:14.5px;color:var(--ink2);font-weight:700;transition:.18s}
+.tabs button.on{background:var(--surface);color:var(--charcoal);box-shadow:var(--sh-sm)}
+label.fl{display:block;font-size:13px;font-weight:700;color:var(--ink);margin:15px 0 7px}
+.fld{width:100%;padding:14px 15px;border:1.5px solid var(--line2);border-radius:13px;background:var(--surface);color:var(--ink);outline:none;transition:.16s}
+.fld::placeholder{color:var(--ink3)}
+.fld:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,155,94,.16)}
+.btn{width:100%;padding:15px;border-radius:14px;font-size:16px;font-weight:800;color:#fff;
+  background:var(--grad-gold);margin-top:24px;box-shadow:0 6px 18px rgba(157,131,71,.32);transition:.16s;letter-spacing:.3px}
+.btn:hover{box-shadow:0 9px 24px rgba(157,131,71,.42)}
+.btn:active{transform:translateY(1px)}
+.link-sm{display:block;text-align:center;margin-top:16px;color:var(--ink2);font-size:12.5px;font-weight:600}
+.link-sm b{color:var(--gold-d);cursor:pointer}
+.msg{font-size:13px;margin-top:14px;padding:11px 13px;border-radius:11px;display:none;font-weight:600}
+.msg.err{display:block;background:#f7e9e6;color:#a5584c;border:1px solid #ecccc4}
+.msg.ok{display:block;background:#eaf0e9;color:#5a7a55;border:1px solid #cddccb}
+
+.topbar{position:sticky;top:0;z-index:40;background:var(--grad-dark);color:#fff;
+  padding:10px 14px;display:flex;align-items:center;gap:11px;box-shadow:0 3px 16px rgba(43,47,56,.28)}
+.topbar .mk{width:40px;height:40px;border-radius:11px;background:#fff;padding:4px;display:grid;place-items:center;flex-shrink:0}
+.topbar .mk img{width:100%;height:100%;object-fit:contain}
+.topbar h2{font-size:16px;margin:0;flex:1;letter-spacing:-.3px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-user{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);padding:7px 12px;border-radius:22px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.top-user .av{width:22px;height:22px;border-radius:50%;background:var(--grad-gold);display:grid;place-items:center;font-size:11px;font-weight:800}
+.icobtn{background:rgba(255,255,255,.12);color:#fff;width:40px;height:40px;border-radius:12px;font-size:16px;display:grid;place-items:center;transition:.15s;flex-shrink:0}
+.icobtn:active{transform:scale(.92)}
+.container{max-width:840px;margin:0 auto;padding:18px 15px 100px}
+
+.navbar{position:fixed;bottom:0;left:0;right:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(44,49,58,.07)}
+.navbar button{flex:1;padding:9px 4px;border-radius:14px;color:var(--ink3);
+  display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;font-weight:700;transition:.16s}
+.navbar button svg{width:22px;height:22px}
+.navbar button.on{color:var(--charcoal);background:var(--gold-soft)}
+.navbar button.on svg{stroke:var(--gold-d)}
+
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 16px;gap:12px}
+.section-title h3{font-size:21px;margin:0;letter-spacing:-.4px;font-weight:800;color:var(--charcoal)}
+.section-title p{margin:3px 0 0;font-size:13px;color:var(--ink2)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;margin-bottom:12px;box-shadow:var(--sh-sm);transition:.16s}
+.card.tap{cursor:pointer}
+.card.tap:hover{box-shadow:var(--sh);border-color:var(--line2)}
+.card.tap:active{transform:scale(.994)}
+.branch-h{display:flex;align-items:center;gap:13px}
+.branch-ico{width:50px;height:50px;border-radius:14px;flex-shrink:0;display:grid;place-items:center;font-size:20px;font-weight:800;color:#fff}
+.branch-h .t{flex:1;min-width:0}
+.branch-h .t b{font-size:16px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.branch-h .t span{font-size:12.5px;color:var(--ink2)}
+.count-pill{background:var(--gold-soft);border-radius:20px;padding:6px 13px;font-size:12.5px;font-weight:700;color:var(--gold-d);white-space:nowrap}
+
+.fab{position:fixed;bottom:88px;left:18px;z-index:39;height:54px;padding:0 22px 0 20px;border-radius:18px;
+  background:var(--grad-gold);color:#fff;font-size:15px;font-weight:800;
+  box-shadow:0 8px 22px rgba(157,131,71,.42);transition:.16s;display:flex;align-items:center;gap:8px}
+.fab:hover{box-shadow:0 10px 28px rgba(157,131,71,.5)}
+.fab:active{transform:scale(.95)}
+.fab .p{font-size:22px;font-weight:300;line-height:1}
+
+.stars{font-size:15px;letter-spacing:1px;color:var(--gold)}
+.note-card .nh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.note-date{font-size:12.5px;color:#fff;background:var(--grad-dark);padding:5px 12px;border-radius:9px;font-weight:700;white-space:nowrap}
+.tagrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tag{font-size:11.5px;background:var(--silver-soft);color:var(--ink2);padding:4px 11px;border-radius:20px;font-weight:600}
+.note-excerpt{font-size:13.5px;color:var(--ink2);line-height:1.75;margin-top:9px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+.backbtn{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1.5px solid var(--line2);
+  color:var(--charcoal);font-size:14px;font-weight:800;padding:10px 18px 10px 14px;border-radius:13px;margin-bottom:14px;box-shadow:var(--sh-sm);transition:.15s}
+.backbtn:hover{border-color:var(--gold);color:var(--gold-d)}
+.backbtn:active{transform:translateX(2px)}
+.backbtn svg{width:17px;height:17px}
+
+.sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(43,47,56,.55);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:.22s}
+.sheet-bg.on{opacity:1;pointer-events:auto}
+.sheet{width:100%;max-width:840px;max-height:94vh;background:var(--paper);border-radius:26px 26px 0 0;
+  overflow-y:auto;transform:translateY(40px);transition:.26s cubic-bezier(.32,.72,.35,1);padding-bottom:34px}
+.sheet-bg.on .sheet{transform:none}
+.grab{width:44px;height:4px;background:var(--line2);border-radius:3px;margin:10px auto 0}
+.sheet-head{position:sticky;top:0;background:var(--paper);z-index:2;padding:14px 18px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px}
+.sheet-head h3{flex:1;margin:0;font-size:17.5px;font-weight:800;color:var(--charcoal)}
+.sheet-body{padding:18px}
+
+.field-group{margin-bottom:18px}
+.field-group>label{display:block;font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.field-group .hint{font-size:11.5px;color:var(--ink3);font-weight:500;margin-right:6px}
+textarea.fld{min-height:92px;resize:vertical;line-height:1.75}
+
+.segrate{display:flex;gap:8px}
+.segrate button{flex:1;padding:13px 0;border:1.5px solid var(--line2);background:var(--surface);border-radius:12px;font-size:15px;font-weight:800;color:var(--ink2);transition:.14s}
+.segrate button.on{color:#fff;border-color:transparent;box-shadow:var(--sh-sm)}
+.segrate button.on[data-v="1"]{background:#c07a6f}
+.segrate button.on[data-v="2"]{background:#c99a6a}
+.segrate button.on[data-v="3"]{background:var(--gold)}
+.segrate button.on[data-v="4"]{background:#8fa06a}
+.segrate button.on[data-v="5"]{background:#6f8f6a}
+
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.choices button{border:1.5px solid var(--line2);background:var(--surface);padding:10px 15px;border-radius:22px;font-size:13.5px;color:var(--ink2);font-weight:600;transition:.14s}
+.choices button:hover{border-color:var(--gold)}
+.choices button.on{background:var(--grad-gold);color:#fff;border-color:transparent;box-shadow:var(--sh-sm)}
+.multi-hint{font-size:11px;color:var(--ink3);margin-top:7px}
+
+.colorpick{display:flex;flex-wrap:wrap;gap:10px}
+.colorpick button{width:44px;height:44px;border-radius:13px;border:3px solid transparent;transition:.14s;position:relative}
+.colorpick button.on{border-color:var(--charcoal);transform:scale(1.06)}
+.colorpick button.on::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-weight:800;font-size:16px}
+
+.detail-block{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:11px;box-shadow:var(--sh-sm)}
+.detail-block h4{margin:0 0 9px;font-size:14.5px;display:flex;align-items:center;gap:9px;font-weight:800;color:var(--charcoal)}
+.detail-block h4 .dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
+.detail-block p{margin:0;font-size:14px;line-height:1.8;color:var(--ink2);white-space:pre-wrap}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.kv:last-child{border:0}
+.kv b{color:var(--ink);font-weight:700}
+.kv span{color:var(--ink2)}
+
+.empty{text-align:center;padding:54px 20px;color:var(--ink2)}
+.empty .e{font-size:52px;margin-bottom:12px;opacity:.4}
+.empty b{font-size:16px;color:var(--ink);font-weight:800}
+.empty p{font-size:14px;line-height:1.75;max-width:320px;margin:8px auto}
+
+.rowbtns{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;justify-content:center;max-width:460px;margin-left:auto;margin-right:auto}
+.rowbtns button{flex:1 1 140px;min-height:52px;padding:14px 18px;border-radius:14px;border:1.5px solid var(--line2);
+  background:var(--surface);font-weight:800;font-size:15px;color:var(--ink);transition:.14s;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.rowbtns button:hover{border-color:var(--gold)}
+.rowbtns button:active{transform:translateY(1px)}
+.rowbtns button.danger{color:var(--danger);border-color:#e6cbc6}
+.rowbtns button.primary{background:var(--grad-gold);color:#fff;border:0;box-shadow:0 5px 14px rgba(157,131,71,.3)}
+.rowbtns button.dark{background:var(--grad-dark);color:#fff;border:0;box-shadow:0 5px 14px rgba(43,47,56,.24)}
+.rowbtns button.wide{flex-basis:100%}
+
+.hero-stat{background:var(--grad-dark);color:#fff;border-radius:var(--r-lg);padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
+.hero-stat::before{content:"";position:absolute;top:-40px;left:-30px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,var(--gold),transparent 68%);opacity:.28}
+.hero-stat .hl{font-size:13px;opacity:.8;font-weight:600;position:relative}
+.hero-stat .hbig{font-size:44px;font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin:4px 0;position:relative}
+.hero-stat .hsub{font-size:13px;opacity:.85;position:relative;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hero-badge{background:rgba(255,255,255,.15);padding:4px 11px;border-radius:20px;font-size:12px;font-weight:700}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--sh-sm);position:relative;overflow:hidden}
+.stat .ic{position:absolute;top:12px;left:12px;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px}
+.stat .n{font-size:30px;font-weight:800;color:var(--charcoal);letter-spacing:-1px;line-height:1}
+.stat .l{font-size:12.5px;color:var(--ink2);margin-top:5px;font-weight:600}
+.bar-item{margin-bottom:13px}
+.bar-item .bl{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:6px}
+.bar-item .bl b{font-weight:700;color:var(--ink)}
+.bar-item .bl span{color:var(--ink2)}
+.bar-track{height:10px;border-radius:6px;background:var(--surface2);overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;background:var(--grad-gold);transition:width .6s ease}
+.rank-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.rank-row:last-child{border:0}
+.rank-num{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}
+.rank-row .rn{flex:1;font-weight:700;font-size:14.5px}
+.rank-row .rv{font-size:13px;color:var(--ink2);font-weight:700}
+
+.settings-item{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:11px;display:flex;align-items:center;gap:14px;box-shadow:var(--sh-sm);cursor:pointer;transition:.15s}
+.settings-item:hover{box-shadow:var(--sh);border-color:var(--line2)}
+.settings-item:active{transform:scale(.994)}
+.settings-item .si{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;color:#fff}
+.settings-item .st{flex:1;min-width:0}
+.settings-item .st b{display:block;font-size:14.5px;font-weight:700}
+.settings-item .st span{font-size:12px;color:var(--ink2)}
+.settings-item .go{color:var(--ink3);font-size:20px;flex-shrink:0}
+
+.search{width:100%;padding:13px 15px;border:1.5px solid var(--line2);border-radius:13px;background:var(--surface);margin-bottom:15px;outline:none;transition:.15s}
+.search:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,155,94,.14)}
+
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);z-index:80;
+  background:var(--charcoal-d);color:#fff;padding:13px 22px;border-radius:30px;font-size:13.5px;font-weight:700;
+  opacity:0;transition:.25s;box-shadow:0 8px 26px rgba(43,47,56,.4);white-space:nowrap;max-width:90vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+.brand-footer{text-align:center;color:var(--ink3);font-size:11.5px;margin-top:24px;line-height:1.9}
+.brand-footer img{width:36px;opacity:.5;display:block;margin:0 auto 6px}
+
+@media(min-width:560px){.stat-row{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+
+<div id="authScreen" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo-wrap"><img src="logo.png" alt="شعار المدرسة"></div>
+    <h1>سجل المتابعة</h1>
+    <div class="sub">نظام الإشراف والملاحظات المدرسية</div>
+    <div class="org">المدرسة القرآنية الوقفية · ولاية العامرات</div>
+    <div class="divider"></div>
+    <div class="tabs">
+      <button id="tabLogin" class="on" onclick="switchAuth('login')">تسجيل الدخول</button>
+      <button id="tabReg" onclick="switchAuth('reg')">مشرف جديد</button>
+    </div>
+    <div id="loginForm">
+      <label class="fl">اسم المستخدم</label>
+      <input id="lUser" class="fld" placeholder="اسم المستخدم" autocomplete="username">
+      <label class="fl">كلمة السر</label>
+      <input id="lPass" type="password" class="fld" placeholder="••••••" autocomplete="current-password">
+      <button class="btn" id="btnLogin">دخول</button>
+      <span class="link-sm">نسيت كلمة السر؟ <b id="btnForgot">استرجاع الدخول</b></span>
+    </div>
+    <div id="regForm" class="hide">
+      <label class="fl">الاسم الكامل</label>
+      <input id="rName" class="fld" placeholder="مثال: أحمد سالم">
+      <label class="fl">اسم المستخدم</label>
+      <input id="rUser" class="fld" placeholder="اسم فريد للدخول">
+      <label class="fl">كلمة السر</label>
+      <input id="rPass" type="password" class="fld" placeholder="اختر كلمة سر">
+      <button class="btn" id="btnReg">إنشاء حافظة جديدة</button>
+    </div>
+    <div id="authMsg" class="msg"></div>
+  </div>
+</div>
+
+<div id="app" class="hide">
+  <div class="topbar">
+    <div class="mk"><img src="logo.png" alt="شعار"></div>
+    <h2 id="topTitle">الأفرع</h2>
+    <div class="top-user"><span class="av" id="userAv">؟</span><span id="whoName">—</span></div>
+    <button class="icobtn" id="btnLogout" title="خروج">⏻</button>
+  </div>
+  <div class="container">
+    <div id="viewBranches"></div>
+    <div id="viewBranch" class="hide"></div>
+    <div id="viewNote" class="hide"></div>
+    <div id="viewStats" class="hide"></div>
+    <div id="viewSettings" class="hide"></div>
+  </div>
+  <button id="fab" class="fab"><span class="p">+</span><span id="fabLabel">فرع جديد</span></button>
+  <div class="navbar">
+    <button id="navBranches" class="on" data-nav="branches">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>الأفرع</button>
+    <button id="navStats" data-nav="stats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>لوحة المتابعة</button>
+    <button id="navSettings" data-nav="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>الإعدادات</button>
+  </div>
+</div>
+
+<div id="sheetBg" class="sheet-bg">
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <h3 id="sheetTitle">—</h3>
+      <button class="icobtn" style="background:var(--surface2);color:var(--ink)" id="sheetClose">✕</button>
+    </div>
+    <div id="sheetBody" class="sheet-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const DB_KEY="sijil_db_v1";
+const MASTER_CODE="OMAN-2025";
+let DB=load(),SESSION=null,U=null,nav="branches",curBranch=null,curNote=null;
+
+function load(){try{return JSON.parse(localStorage.getItem(DB_KEY))||{users:{}}}catch(e){return{users:{}}}}
+function save(){localStorage.setItem(DB_KEY,JSON.stringify(DB))}
+function uid(){U.nextId=(U.nextId||0)+1;return U.nextId+'-'+Date.now().toString(36)}
+function esc(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('on'),2200)}
+
+const BRANCH_COLORS=[
+  ['#b89b5e','#9d8347'],['#8c95a3','#646c78'],['#7d8b6a','#5f6b4f'],['#a37c6d','#7f5d50'],
+  ['#6d8a95','#4f6670'],['#9a7d9e','#6f5673'],['#a89060','#8a7248'],['#6b7f8a','#4d5e68'],['#8f7d6a','#6b5c4d'],['#7a8ba0','#5a6b80']
+];
+function branchGrad(c){c=c||BRANCH_COLORS[0];return `linear-gradient(145deg,${c[0]},${c[1]})`}
+function initial(name){return (name||'؟').trim().charAt(0)||'؟'}
+
+function defaultLists(){return{
+  overall:["ممتاز","جيد جداً","جيد","مقبول","يحتاج تحسين"],
+  facilities:["حالة ممتازة","حالة جيدة","تحتاج صيانة","تحتاج تجهيز","غير صالحة"],
+  visitType:["زيارة دورية","زيارة مفاجئة","زيارة متابعة","زيارة بناءً على بلاغ","زيارة تقييمية"],
+  strengths:["الالتزام بالحضور","تنظيم البيئة الصفية","التفاعل مع الطلاب","استخدام الوسائل","التخطيط الجيد","الانضباط الإداري"],
+  needs:["التنويع في الأساليب","إدارة الوقت","متابعة الواجبات","تفعيل التقنية","التقويم البنائي","إشراك الطلاب"]
+}}
+
+function switchAuth(m){
+  document.getElementById('tabLogin').classList.toggle('on',m==='login');
+  document.getElementById('tabReg').classList.toggle('on',m==='reg');
+  document.getElementById('loginForm').classList.toggle('hide',m!=='login');
+  document.getElementById('regForm').classList.toggle('hide',m!=='reg');authMsg('')}
+function authMsg(t,ok){const e=document.getElementById('authMsg');e.className='msg'+(t?(ok?' ok':' err'):'');e.textContent=t}
+function doRegister(){
+  const name=rName.value.trim(),user=rUser.value.trim().toLowerCase(),pass=rPass.value;
+  if(!name||!user||!pass)return authMsg('يرجى تعبئة جميع الحقول');
+  if(DB.users[user])return authMsg('اسم المستخدم مستخدم بالفعل، اختر غيره');
+  DB.users[user]={name,pass,branches:[],lists:defaultLists(),nextId:0};save();
+  authMsg('تم إنشاء الحافظة بنجاح — جارٍ الدخول',true);setTimeout(()=>startSession(user),700)}
+function doLogin(){
+  const user=lUser.value.trim().toLowerCase(),pass=lPass.value,u=DB.users[user];
+  if(!u||u.pass!==pass)return authMsg('اسم المستخدم أو كلمة السر غير صحيحة');startSession(user)}
+function forgotPass(){
+  const user=(lUser.value.trim()||prompt('أدخل اسم المستخدم:')||'').toLowerCase();
+  if(!user||!DB.users[user])return authMsg('أدخل اسم مستخدم صحيح في الحقل أولاً');
+  const code=prompt('أدخل رمز مدير النظام لاسترجاع الدخول:');
+  if(code!==MASTER_CODE)return authMsg('رمز مدير النظام غير صحيح');
+  const np=prompt('أدخل كلمة سر جديدة لهذا المستخدم:');
+  if(!np)return authMsg('لم يتم تغيير كلمة السر');
+  DB.users[user].pass=np;save();authMsg('تم تغيير كلمة السر بنجاح — يمكنك الدخول الآن',true)}
+function startSession(user){
+  SESSION=user;U=DB.users[user];if(!U.lists)U.lists=defaultLists();
+  localStorage.setItem('sijil_session',user);
+  document.getElementById('authScreen').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  document.getElementById('whoName').textContent=U.name;
+  document.getElementById('userAv').textContent=initial(U.name);
+  lPass.value='';rPass.value='';go('branches')}
+function logout(){SESSION=null;U=null;localStorage.removeItem('sijil_session');
+  document.getElementById('app').classList.add('hide');
+  document.getElementById('authScreen').classList.remove('hide');switchAuth('login')}
+
+function go(v){
+  nav=v;curBranch=null;curNote=null;
+  ['Branches','Stats','Settings','Branch','Note'].forEach(x=>document.getElementById('view'+x).classList.add('hide'));
+  document.querySelectorAll('.navbar button').forEach(b=>b.classList.remove('on'));
+  const fab=document.getElementById('fab');fab.style.display='none';
+  if(v==='branches'){document.getElementById('viewBranches').classList.remove('hide');navBranches.classList.add('on');
+    document.getElementById('topTitle').textContent='الأفرع';
+    fab.style.display='';document.getElementById('fabLabel').textContent='فرع جديد';fab.onclick=()=>editBranch(null);renderBranches()}
+  if(v==='stats'){document.getElementById('viewStats').classList.remove('hide');navStats.classList.add('on');
+    document.getElementById('topTitle').textContent='لوحة المتابعة';renderStats()}
+  if(v==='settings'){document.getElementById('viewSettings').classList.remove('hide');navSettings.classList.add('on');
+    document.getElementById('topTitle').textContent='الإعدادات';renderSettings()}}
+
+function renderBranches(){
+  const host=document.getElementById('viewBranches');
+  let h=`<div class="section-title"><div><h3>الأفرع المُشرَف عليها</h3><p>اضغط على أي فرع لعرض ملاحظاته</p></div>
+    <span class="count-pill">${U.branches.length} فرع</span></div>`;
+  if(U.branches.length){h+=`<input class="search" placeholder="🔍 بحث عن فرع..." oninput="filterBranches(this.value)"><div id="branchList">`;
+    U.branches.forEach(b=>h+=branchCard(b));h+='</div>'}
+  else h+=`<div class="empty"><div class="e">🏫</div><b>لا توجد أفرع بعد</b>
+    <p>ابدأ بإضافة أول فرع من زر «فرع جديد» في الأسفل، ثم سجّل ملاحظات زياراتك عليه.</p></div>`;
+  host.innerHTML=h}
+function branchCard(b){
+  const last=b.notes.length?b.notes[0].date:'—';
+  return `<div class="card tap" onclick="openBranch('${b.id}')"><div class="branch-h">
+    <div class="branch-ico" style="background:${branchGrad(b.color)}">${esc(initial(b.name))}</div>
+    <div class="t"><b>${esc(b.name)}</b><span>${esc(b.stage||'')}${b.stage&&b.location?' · ':''}${esc(b.location||'')}</span></div>
+    <span class="count-pill">${b.notes.length} ملاحظة</span></div>
+    ${b.notes.length?`<div style="font-size:12.5px;color:var(--ink2);margin-top:11px">آخر زيارة: ${esc(last)}</div>`:''}</div>`}
+function filterBranches(q){q=q.trim().toLowerCase();
+  document.getElementById('branchList').innerHTML=U.branches.filter(b=>(b.name+b.stage+b.location).toLowerCase().includes(q)).map(branchCard).join('')||
+    '<div class="empty"><div class="e">🔍</div><p>لا نتائج مطابقة</p></div>'}
+
+function editBranch(id){
+  const b=id?U.branches.find(x=>x.id===id):{color:BRANCH_COLORS[0],name:'',stage:'',location:'',principal:''};
+  window._pickColor=b.color||BRANCH_COLORS[0];
+  const colorRow=BRANCH_COLORS.map((c,i)=>`<button data-i="${i}" class="${JSON.stringify(c)===JSON.stringify(b.color)?'on':''}" style="background:${branchGrad(c)}" onclick="pickColor(${i})"></button>`).join('');
+  openSheet(id?'تعديل الفرع':'إضافة فرع جديد',`
+    <div class="field-group"><label>لون الفرع المميّز</label><div class="colorpick" id="colorRow">${colorRow}</div></div>
+    <div class="field-group"><label>اسم المدرسة / الفرع</label><input id="bName" class="fld" value="${esc(b.name)}" placeholder="اسم المدرسة"></div>
+    <div class="field-group"><label>وصف المدرسة والصفوف <span class="hint">اختياري</span></label><input id="bStage" class="fld" value="${esc(b.stage)}" placeholder="مثال: مدرسة بنات · الصفوف 1 إلى 6"></div>
+    <div class="field-group"><label>الموقع <span class="hint">اختياري</span></label><input id="bLoc" class="fld" value="${esc(b.location)}" placeholder="الحي / المنطقة"></div>
+    <div class="field-group"><label>اسم مدير المدرسة <span class="hint">اختياري</span></label><input id="bPrin" class="fld" value="${esc(b.principal||'')}" placeholder="اسم المدير"></div>
+    <div class="rowbtns">${id?`<button class="danger" onclick="delBranch('${id}')">🗑 حذف الفرع</button>`:''}
+      <button class="primary" onclick="saveBranch('${id||''}')">${id?'حفظ التعديلات':'إضافة الفرع'}</button></div>`)}
+function pickColor(i){window._pickColor=BRANCH_COLORS[i];
+  document.querySelectorAll('#colorRow button').forEach((x,j)=>x.classList.toggle('on',j===i))}
+function saveBranch(id){
+  const name=bName.value.trim();if(!name)return toast('يرجى إدخال اسم الفرع');
+  const data={color:window._pickColor||BRANCH_COLORS[0],name,stage:bStage.value.trim(),location:bLoc.value.trim(),principal:bPrin.value.trim()};
+  if(id){Object.assign(U.branches.find(x=>x.id===id),data);toast('تم حفظ التعديلات')}
+  else{U.branches.unshift({id:uid(),...data,notes:[]});toast('تمت إضافة الفرع')}
+  save();closeSheet();if(id&&curBranch)openBranch(id);else renderBranches()}
+function delBranch(id){if(!confirm('حذف الفرع وجميع ملاحظاته نهائياً؟'))return;
+  U.branches=U.branches.filter(x=>x.id!==id);save();closeSheet();go('branches');toast('تم حذف الفرع')}
+
+function openBranch(id){
+  curBranch=U.branches.find(x=>x.id===id);if(!curBranch)return;nav='branch';
+  ['Branches','Stats','Settings','Note'].forEach(x=>document.getElementById('view'+x).classList.add('hide'));
+  const v=document.getElementById('viewBranch');v.classList.remove('hide');
+  document.getElementById('topTitle').textContent=curBranch.name;
+  const avg=branchAvg(curBranch);
+  let h=`<button class="backbtn" onclick="go('branches')">${backIcon()} عودة</button>
+   <div class="card"><div class="branch-h"><div class="branch-ico" style="background:${branchGrad(curBranch.color)}">${esc(initial(curBranch.name))}</div>
+     <div class="t"><b>${esc(curBranch.name)}</b><span>${esc(curBranch.stage||'')}${curBranch.stage&&curBranch.location?' · ':''}${esc(curBranch.location||'')}</span></div>
+     <button class="icobtn" style="background:var(--surface2);color:var(--ink)" onclick="editBranch('${curBranch.id}')">✎</button></div>
+   ${curBranch.principal?`<div class="kv" style="margin-top:11px"><span>مدير المدرسة</span><b>${esc(curBranch.principal)}</b></div>`:''}
+   <div class="kv"><span>عدد الزيارات المسجّلة</span><b>${curBranch.notes.length}</b></div>
+   ${avg?`<div class="kv"><span>متوسط التقييم العام</span><b><span class="stars">${stars(avg)}</span> ${avg}</b></div>`:''}</div>
+   ${trendChart(curBranch)}
+   <div class="section-title"><div><h3>سجل الملاحظات</h3><p>مرتّبة من الأحدث للأقدم</p></div></div>`;
+  if(curBranch.notes.length)curBranch.notes.forEach(n=>h+=noteCard(n));
+  else h+=`<div class="empty"><div class="e">📝</div><b>لا توجد ملاحظات</b><p>سجّل أول ملاحظة زيارة لهذا الفرع من زر «ملاحظة جديدة».</p></div>`;
+  v.innerHTML=h;
+  const fab=document.getElementById('fab');fab.style.display='';document.getElementById('fabLabel').textContent='ملاحظة جديدة';fab.onclick=()=>editNote(null)}
+
+function backIcon(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>'}
+
+function trendChart(b){
+  const pts=b.notes.filter(n=>n.overall).slice().sort((a,c)=>(a.iso||'').localeCompare(c.iso||''));
+  if(pts.length<2)return '';
+  const W=320,H=150,pL=26,pR=12,pT=16,pB=28,iw=W-pL-pR,ih=H-pT-pB;
+  const x=i=>pL+iw*i/(pts.length-1),y=v=>pT+ih-((v-1)/4)*ih;
+  let path='',dots='';
+  pts.forEach((n,i)=>{const px=x(i),py=y(n.overall);path+=(i?'L':'M')+px.toFixed(1)+' '+py.toFixed(1)+' ';
+    dots+=`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4.5" fill="#fff" stroke="var(--gold-d)" stroke-width="2.5"/>`});
+  const area=`M${x(0).toFixed(1)} ${(pT+ih).toFixed(1)} `+pts.map((n,i)=>'L'+x(i).toFixed(1)+' '+y(n.overall).toFixed(1)).join(' ')+` L${x(pts.length-1).toFixed(1)} ${(pT+ih).toFixed(1)} Z`;
+  let grid='';[1,2,3,4,5].forEach(v=>{const gy=y(v);grid+=`<line x1="${pL}" y1="${gy.toFixed(1)}" x2="${W-pR}" y2="${gy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${pL-6}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--ink3)">${v}</text>`});
+  const labels=pts.map((n,i)=>`<text x="${x(i).toFixed(1)}" y="${H-9}" text-anchor="middle" font-size="8.5" fill="var(--ink3)">${esc((n.date||'').replace(/\/\d{4}$/,''))}</text>`).join('');
+  return `<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--charcoal);margin-bottom:6px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>تطوّر التقييم العام عبر الزيارات</div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible">
+      <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--gold)" stop-opacity=".26"/><stop offset="1" stop-color="var(--gold)" stop-opacity="0"/></linearGradient></defs>
+      ${grid}<path d="${area}" fill="url(#tg)"/><path d="${path}" fill="none" stroke="var(--gold-d)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}
+    </svg></div>`}
+function noteCard(n){
+  const tags=[];if(n.visitType)tags.push(n.visitType);if(n.facilities)tags.push('مرافق: '+n.facilities);
+  const entries=n.teacherEntries||[];
+  const names=entries.map(t=>t.name).filter(Boolean);
+  const ex=n.school||n.principal||n.ideas||'';
+  return `<div class="card tap note-card" onclick="openNote('${n.id}')"><div class="nh"><div style="flex:1">
+    <div class="tagrow">${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div>
+    <span class="note-date">${esc(n.date)}</span></div>
+    ${n.overall?`<div class="stars">${stars(n.overall)}</div>`:''}
+    ${names.length?`<div class="tagrow" style="margin-top:9px">${names.map(nm=>`<span class="tag" style="background:var(--gold-soft);color:var(--gold-d)">👩‍🏫 ${esc(nm)}</span>`).join('')}</div>`:(entries.length?`<div style="font-size:12.5px;color:var(--ink2);margin-top:9px">${entries.length} معلمة</div>`:'')}
+    ${ex?`<div class="note-excerpt">${esc(ex)}</div>`:''}</div>`}
+function branchAvg(b){const r=b.notes.filter(n=>n.overall).map(n=>n.overall);
+  return r.length?(r.reduce((a,c)=>a+c,0)/r.length).toFixed(1):null}
+function stars(v){v=Math.round(v);return '★'.repeat(v)+'☆'.repeat(5-v)}
+
+let noteDraft={};
+function migrateNote(n){
+  if(!n.teacherEntries){
+    n.teacherEntries=[];
+    if((n.strengths&&n.strengths.length)||(n.needs&&n.needs.length)||n.performance||n.teachers){
+      n.teacherEntries.push({name:(n.teachers&&n.teachers.length<40?n.teachers:'')||'',
+        performance:n.performance||'',strengths:n.strengths||[],needs:n.needs||[],
+        notes:(n.teachers&&n.teachers.length>=40)?n.teachers:''});
+    }
+  }
+  return n}
+function editNote(id){
+  const n=id?migrateNote(curBranch.notes.find(x=>x.id===id)):{date:today(),visitType:'',overall:0,facilities:'',school:'',principal:'',ideas:'',teacherEntries:[]};
+  noteDraft=JSON.parse(JSON.stringify(n));
+  if(!noteDraft.teacherEntries)noteDraft.teacherEntries=[];
+  const L=U.lists;
+  openSheet(id?'تعديل الملاحظة':'ملاحظة زيارة جديدة',`
+    <div class="field-group"><label>تاريخ الزيارة</label><input id="nDate" type="date" class="fld" value="${dateISO(n.date)}"></div>
+    <div class="field-group"><label>نوع الزيارة <span class="hint">اختر من القائمة</span></label>${choicePicker('visitType',L.visitType,n.visitType,false)}</div>
+    <div class="field-group"><label>التقييم العام للزيارة</label>${segRate('overall',n.overall)}</div>
+    <div class="field-group"><label>ملاحظات عن المدرسة (المبنى والبيئة)</label><textarea id="nSchool" class="fld">${esc(n.school)}</textarea></div>
+    <div class="field-group"><label>حالة المرافق <span class="hint">اختر</span></label>${choicePicker('facilities',L.facilities,n.facilities,false)}</div>
+    <div class="field-group"><label>ملاحظات عن مدير المدرسة</label><textarea id="nPrincipal" class="fld">${esc(n.principal)}</textarea></div>
+
+    <div style="background:var(--gold-soft);border-radius:16px;padding:14px 15px;margin-bottom:18px">
+      <label style="margin:0 0 4px;font-size:14.5px;color:var(--gold-d);font-weight:800">👩‍🏫 ملاحظات المعلمات</label>
+      <p style="font-size:12px;color:var(--ink2);margin:0 0 12px">أضف معلمة واحدة أو أكثر، ولكل معلمة نقاط قوتها وجوانب تطويرها.</p>
+      <div id="teacherList"></div>
+      <button type="button" onclick="addTeacherEntry()" style="width:100%;padding:12px;border-radius:12px;border:1.5px dashed var(--gold);background:transparent;color:var(--gold-d);font-weight:800;font-size:14px;margin-top:4px">+ إضافة معلمة</button>
+    </div>
+
+    <div class="field-group"><label>أفكار وتوصيات عامة <span class="hint">على مستوى الفرع</span></label><textarea id="nIdeas" class="fld" placeholder="أي توصية عامة للفرع...">${esc(n.ideas)}</textarea></div>
+    <div class="rowbtns">${id?`<button class="danger" onclick="delNote('${id}')">🗑 حذف</button>`:''}
+      <button class="primary" onclick="saveNote('${id||''}')">${id?'حفظ التعديلات':'حفظ الملاحظة'}</button></div>`);
+  renderTeacherEntries()}
+
+function addTeacherEntry(){noteDraft.teacherEntries.push({name:'',performance:'',strengths:[],needs:[],notes:''});renderTeacherEntries();
+  setTimeout(()=>{const els=document.querySelectorAll('#teacherList .tentry');const last=els[els.length-1];if(last)last.querySelector('input').focus()},60)}
+function removeTeacherEntry(i){noteDraft.teacherEntries.splice(i,1);renderTeacherEntries()}
+function renderTeacherEntries(){
+  const host=document.getElementById('teacherList');if(!host)return;const L=U.lists;
+  const names=branchTeacherNames(curBranch);
+  if(!noteDraft.teacherEntries.length){host.innerHTML=`<div style="text-align:center;color:var(--ink3);font-size:12.5px;padding:8px 0 14px">لم تُضف معلمة بعد</div>`;return}
+  host.innerHTML=noteDraft.teacherEntries.map((t,i)=>`
+    <div class="tentry" style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:11px">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:11px">
+        <span style="width:26px;height:26px;border-radius:8px;background:var(--grad-gold);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0">${i+1}</span>
+        <input list="teacherNames" class="fld" style="flex:1;padding:10px 12px" placeholder="اسم المعلمة" value="${esc(t.name)}" oninput="noteDraft.teacherEntries[${i}].name=this.value">
+        <button type="button" onclick="removeTeacherEntry(${i})" style="width:34px;height:34px;border-radius:9px;background:#f2e6e3;color:var(--danger);font-size:17px;flex-shrink:0">×</button>
+      </div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:7px">نقاط القوة</div>
+      ${teacherChoices('strengths',L.strengths,t.strengths,i)}
+      <div style="font-size:12.5px;font-weight:700;color:var(--ink);margin:12px 0 7px">جوانب تحتاج تطوير</div>
+      ${teacherChoices('needs',L.needs,t.needs,i)}
+      <div style="font-size:12.5px;font-weight:700;color:var(--ink);margin:12px 0 7px">ملاحظة إضافية عن أدائها <span style="font-weight:500;color:var(--ink3)">(اختياري)</span></div>
+      <textarea class="fld" style="min-height:64px" placeholder="ملاحظة حرة..." oninput="noteDraft.teacherEntries[${i}].notes=this.value">${esc(t.notes||'')}</textarea>
+    </div>`).join('')+
+    `<datalist id="teacherNames">${names.map(nm=>`<option value="${esc(nm)}">`).join('')}</datalist>`}
+function teacherChoices(field,opts,val,idx){const sel=val||[];
+  return `<div class="choices">${opts.map(o=>`<button type="button" class="${sel.includes(o)?'on':''}" onclick="toggleTeacherChoice(${idx},'${field}',this)">${esc(o)}</button>`).join('')}</div>`}
+function toggleTeacherChoice(idx,field,el){el.classList.toggle('on');
+  noteDraft.teacherEntries[idx][field]=[...el.parentElement.querySelectorAll('button.on')].map(b=>b.textContent)}
+function branchTeacherNames(b){const s=new Set();(b.notes||[]).forEach(n=>(n.teacherEntries||[]).forEach(t=>{if(t.name)s.add(t.name)}));return[...s]}
+function choicePicker(field,opts,val,multi){
+  const sel=multi?(val||[]):(val?[val]:[]);
+  return `<div class="choices" data-field="${field}">${opts.map(o=>`<button class="${sel.includes(o)?'on':''}" onclick="pickChoice(this,'${field}',${multi})">${esc(o)}</button>`).join('')}</div>${multi?'<div class="multi-hint">يمكن اختيار أكثر من خيار</div>':''}`}
+function pickChoice(el,field,multi){
+  if(multi){el.classList.toggle('on');noteDraft[field]=[...el.parentElement.querySelectorAll('button.on')].map(b=>b.textContent)}
+  else{const on=el.classList.contains('on');el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+    if(!on){el.classList.add('on');noteDraft[field]=el.textContent}else noteDraft[field]=''}}
+function segRate(field,val){return `<div class="segrate" data-field="${field}">${[1,2,3,4,5].map(v=>`<button data-v="${v}" class="${val===v?'on':''}" onclick="pickRate(this,'${field}',${v})">${v}</button>`).join('')}</div>`}
+function pickRate(el,field,v){const on=el.classList.contains('on');
+  el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  if(!on){el.classList.add('on');noteDraft[field]=v}else noteDraft[field]=0}
+function saveNote(id){
+  const d=nDate.value;if(!d)return toast('يرجى تحديد تاريخ الزيارة');
+  const entries=(noteDraft.teacherEntries||[]).map(t=>({
+    name:(t.name||'').trim(),performance:(t.performance||'').trim(),
+    strengths:t.strengths||[],needs:t.needs||[],notes:(t.notes||'').trim()
+  })).filter(t=>t.name||t.strengths.length||t.needs.length||t.notes||t.performance);
+  const data={date:dateHuman(d),visitType:noteDraft.visitType||'',overall:noteDraft.overall||0,facilities:noteDraft.facilities||'',
+    school:nSchool.value.trim(),principal:nPrincipal.value.trim(),
+    teacherEntries:entries,ideas:nIdeas.value.trim(),iso:d};
+  if(id)Object.assign(curBranch.notes.find(x=>x.id===id),data);
+  else curBranch.notes.push({id:uid(),...data});
+  curBranch.notes.sort((a,b)=>(b.iso||'').localeCompare(a.iso||''));
+  save();closeSheet();openBranch(curBranch.id);toast(id?'تم حفظ التعديلات':'تم حفظ الملاحظة')}
+function delNote(id){if(!confirm('حذف هذه الملاحظة نهائياً؟'))return;
+  curBranch.notes=curBranch.notes.filter(x=>x.id!==id);save();closeSheet();openBranch(curBranch.id);toast('تم الحذف')}
+
+function openNote(id){
+  const n=migrateNote(curBranch.notes.find(x=>x.id===id));if(!n)return;curNote=n;
+  ['Branches','Stats','Settings','Branch'].forEach(x=>document.getElementById('view'+x).classList.add('hide'));
+  const v=document.getElementById('viewNote');v.classList.remove('hide');
+  document.getElementById('fab').style.display='none';
+  document.getElementById('topTitle').textContent='تفاصيل الزيارة';
+  const blk=(t,val,ico)=>val?`<div class="detail-block"><h4><span class="dot"></span>${ico} ${t}</h4><p>${esc(val)}</p></div>`:'';
+  const entries=n.teacherEntries||[];
+  let teacherHTML='';
+  if(entries.length){
+    teacherHTML=`<div class="section-title" style="margin:18px 2px 12px"><div><h3 style="font-size:17px">👩‍🏫 المعلمات</h3><p>${entries.length} معلمة في هذه الزيارة</p></div></div>`;
+    teacherHTML+=entries.map((t,i)=>`<div class="detail-block" style="border-right:3px solid var(--gold)">
+      <h4 style="font-size:15px"><span style="width:24px;height:24px;border-radius:7px;background:var(--grad-gold);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800">${i+1}</span> ${esc(t.name||'معلمة')}</h4>
+      ${t.strengths&&t.strengths.length?`<div style="margin-bottom:9px"><div style="font-size:12.5px;color:var(--ink2);font-weight:700;margin-bottom:6px">✅ نقاط القوة</div><div class="tagrow">${t.strengths.map(s=>`<span class="tag" style="background:#eef2ea;color:#5a7a55">${esc(s)}</span>`).join('')}</div></div>`:''}
+      ${t.needs&&t.needs.length?`<div style="margin-bottom:9px"><div style="font-size:12.5px;color:var(--ink2);font-weight:700;margin-bottom:6px">🎯 جوانب التطوير</div><div class="tagrow">${t.needs.map(s=>`<span class="tag" style="background:#f4ece4;color:#a5744c">${esc(s)}</span>`).join('')}</div></div>`:''}
+      ${t.performance?`<div style="margin-bottom:6px"><div style="font-size:12.5px;color:var(--ink2);font-weight:700;margin-bottom:4px">الأداء الصفي</div><p style="margin:0;font-size:13.5px;color:var(--ink2);line-height:1.7">${esc(t.performance)}</p></div>`:''}
+      ${t.notes?`<p style="margin:6px 0 0;font-size:13.5px;color:var(--ink2);line-height:1.7">${esc(t.notes)}</p>`:''}
+    </div>`).join('');
+  }
+  v.innerHTML=`<button class="backbtn" onclick="openBranch('${curBranch.id}')">${backIcon()} عودة لسجل ${esc(curBranch.name)}</button>
+    <div class="card"><div class="nh"><div><b style="font-size:16px">${esc(curBranch.name)}</b>
+      <div style="font-size:12.5px;color:var(--ink2);margin-top:2px">${esc(n.visitType||'زيارة')}</div></div>
+      <span class="note-date">${esc(n.date)}</span></div>
+      ${n.overall?`<div style="margin-top:12px"><span style="font-size:13px;color:var(--ink2)">التقييم العام: </span><span class="stars" style="font-size:18px">${stars(n.overall)}</span> <b>${n.overall}/5</b></div>`:''}
+      ${n.facilities?`<div class="kv" style="margin-top:8px"><span>حالة المرافق</span><b>${esc(n.facilities)}</b></div>`:''}</div>
+    ${blk('المدرسة والبيئة',n.school,'🏫')}${blk('مدير المدرسة',n.principal,'👤')}
+    ${teacherHTML}
+    ${blk('أفكار وتوصيات عامة',n.ideas,'💡')}
+    <div class="rowbtns"><button onclick="editNote('${n.id}')">✎ تعديل</button>
+      <button onclick="shareNote('${n.id}')">📤 مشاركة</button>
+      <button class="dark wide" onclick="exportPDF('${n.id}')">📄 تقرير PDF — مشاركة أو حفظ</button></div>`}
+function shareNote(id){const n=curNote;
+  let t=`تقرير زيارة إشرافية\n=================\nالفرع: ${curBranch.name}\nالتاريخ: ${n.date}\n`;
+  if(n.visitType)t+=`نوع الزيارة: ${n.visitType}\n`;if(n.overall)t+=`التقييم العام: ${n.overall}/5\n`;if(n.facilities)t+=`المرافق: ${n.facilities}\n`;
+  const add=(l,val)=>{if(val)t+=`\n${l}:\n${val}\n`};
+  add('المدرسة',n.school);add('المدير',n.principal);
+  (n.teacherEntries||[]).forEach((te,i)=>{
+    t+=`\n— المعلمة ${i+1}: ${te.name||'—'}\n`;
+    if(te.strengths&&te.strengths.length)t+=`  نقاط القوة: ${te.strengths.join('، ')}\n`;
+    if(te.needs&&te.needs.length)t+=`  جوانب التطوير: ${te.needs.join('، ')}\n`;
+    if(te.performance)t+=`  الأداء: ${te.performance}\n`;
+    if(te.notes)t+=`  ملاحظة: ${te.notes}\n`});
+  add('توصيات عامة',n.ideas);
+  if(navigator.share)navigator.share({text:t}).catch(()=>{});
+  else{navigator.clipboard?.writeText(t);toast('تم نسخ التقرير')}}
+
+function logoDataURL(){return new Promise(res=>{
+  const img=new Image();img.crossOrigin='anonymous';
+  img.onload=()=>{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+    c.getContext('2d').drawImage(img,0,0);try{res(c.toDataURL('image/png'))}catch(e){res(null)}};
+  img.onerror=()=>res(null);img.src='logo.png'})}
+async function exportPDF(id){
+  const n=migrateNote(curBranch.notes.find(x=>x.id===id));if(!n)return;
+  if(!window.jspdf||!window.html2canvas){toast('تصدير PDF يحتاج اتصالاً بالإنترنت أول مرة');return}
+  toast('جارٍ إنشاء التقرير...');const logo=await logoDataURL();
+  const row=(label,val)=>val?`<tr><td style="width:130px;padding:9px 12px;background:#f2ecdd;font-weight:700;color:#3a3f4b;border:1px solid #e0d8c4;vertical-align:top">${label}</td><td style="padding:9px 12px;border:1px solid #e0d8c4;color:#2b3038;line-height:1.7;white-space:pre-wrap">${esc(val)}</td></tr>`:'';
+  const entries=n.teacherEntries||[];
+  const teacherBlocks=entries.length?`<div style="font-size:15px;font-weight:800;color:#3a3f4b;margin:20px 0 10px;padding-bottom:6px;border-bottom:2px solid #f2ecdd">👩‍🏫 ملاحظات المعلمات (${entries.length})</div>`+
+    entries.map((t,i)=>`<div style="border:1px solid #e0d8c4;border-right:3px solid #b89b5e;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:800;color:#3a3f4b;margin-bottom:8px">${i+1}. ${esc(t.name||'معلمة')}</div>
+      ${t.strengths&&t.strengths.length?`<div style="font-size:12.5px;margin-bottom:5px"><b style="color:#5a7a55">نقاط القوة:</b> <span style="color:#2b3038">${esc(t.strengths.join(' • '))}</span></div>`:''}
+      ${t.needs&&t.needs.length?`<div style="font-size:12.5px;margin-bottom:5px"><b style="color:#a5744c">جوانب التطوير:</b> <span style="color:#2b3038">${esc(t.needs.join(' • '))}</span></div>`:''}
+      ${t.performance?`<div style="font-size:12.5px;margin-bottom:5px"><b style="color:#646c78">الأداء الصفي:</b> <span style="color:#2b3038">${esc(t.performance)}</span></div>`:''}
+      ${t.notes?`<div style="font-size:12.5px;color:#2b3038;line-height:1.7">${esc(t.notes)}</div>`:''}
+    </div>`).join(''):'';
+  const html=`<div id="pdfDoc" style="width:720px;padding:36px 40px;background:#fff;font-family:'Tajawal',Tahoma,sans-serif;direction:rtl;color:#2c313a">
+    <div style="display:flex;align-items:center;gap:16px;border-bottom:3px solid #b89b5e;padding-bottom:16px">
+      ${logo?`<img src="${logo}" style="width:64px;height:64px;object-fit:contain">`:''}
+      <div style="flex:1"><div style="font-size:22px;font-weight:800;color:#3a3f4b">تقرير زيارة إشرافية</div>
+        <div style="font-size:13px;color:#9d8347;font-weight:700;margin-top:2px">المدرسة القرآنية الوقفية · ولاية العامرات</div></div>
+      <div style="text-align:left;font-size:12px;color:#646c78">التاريخ<br><b style="font-size:15px;color:#3a3f4b">${esc(n.date)}</b></div></div>
+    <div style="display:flex;gap:12px;margin:16px 0">
+      <div style="flex:1;background:#f0f2f5;border-radius:10px;padding:12px 14px"><div style="font-size:11px;color:#646c78">الفرع</div><div style="font-size:16px;font-weight:800;color:#3a3f4b">${esc(curBranch.name)}</div><div style="font-size:11px;color:#646c78">${esc(curBranch.stage||'')} ${curBranch.location?'· '+esc(curBranch.location):''}</div></div>
+      ${n.overall?`<div style="width:140px;background:#f2ecdd;border-radius:10px;padding:12px 14px;text-align:center"><div style="font-size:11px;color:#646c78">التقييم العام</div><div style="font-size:20px;color:#b89b5e;letter-spacing:2px">${stars(n.overall)}</div><div style="font-size:12px;font-weight:700;color:#3a3f4b">${n.overall} من 5</div></div>`:''}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+      ${row('نوع الزيارة',n.visitType)}${row('حالة المرافق',n.facilities)}${row('المدرسة والبيئة',n.school)}${row('مدير المدرسة',n.principal||curBranch.principal)}${row('أفكار وتوصيات عامة',n.ideas)}</table>
+    ${teacherBlocks}
+    <div style="margin-top:24px;display:flex;justify-content:space-between;font-size:11px;color:#98a0ab;border-top:1px solid #e3e6ea;padding-top:12px"><span>المشرف: ${esc(U.name)}</span><span>سجل المتابعة — نظام الإشراف المدرسي</span></div></div>`;
+  const holder=document.createElement('div');holder.style.cssText='position:fixed;left:-9999px;top:0';holder.innerHTML=html;document.body.appendChild(holder);
+  try{const canvas=await html2canvas(holder.querySelector('#pdfDoc'),{scale:2,backgroundColor:'#fff'});
+    const {jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');const pw=210,ph=canvas.height*pw/canvas.width;
+    pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,pw,ph);
+    const fname='تقرير_'+curBranch.name+'_'+n.date.replace(/\//g,'-')+'.pdf';
+    const blob=pdf.output('blob');
+    await deliverFile(blob,fname);
+  }
+  catch(e){toast('تعذّر إنشاء PDF')}
+  document.body.removeChild(holder)}
+
+/* توصيل الملف بطريقة موحّدة لكل الأجهزة:
+   1) مشاركة الملف مباشرة عبر النظام (واتساب/بريد/حفظ) إن كانت مدعومة.
+   2) وإلا: فتح الملف في تبويب جديد ليعاينه المستخدم ويشاركه أو يحفظه.
+   3) وإلا: تنزيل عادي مع رسالة توضّح مكانه. */
+async function deliverFile(blob,fname,mime){
+  mime=mime||'application/pdf';
+  const file=new File([blob],fname,{type:mime});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:fname});toast('تم فتح خيارات المشاركة');return}
+    catch(e){if(e&&e.name==='AbortError'){return}}
+  }
+  const url=URL.createObjectURL(blob);
+  if(mime==='application/pdf'){
+    const win=window.open(url,'_blank');
+    if(win){toast('تم فتح التقرير — يمكنك مشاركته أو حفظه');setTimeout(()=>URL.revokeObjectURL(url),60000);return}
+  }
+  const a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();
+  document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),60000);
+  toast('تم حفظ الملف في مجلد التنزيلات');
+}
+
+function renderStats(){
+  const v=document.getElementById('viewStats');
+  const nB=U.branches.length,nN=U.branches.reduce((a,b)=>a+b.notes.length,0);
+  const rated=[];U.branches.forEach(b=>b.notes.forEach(n=>{if(n.overall)rated.push(n.overall)}));
+  const avg=rated.length?(rated.reduce((a,c)=>a+c,0)/rated.length):0;
+  const avgTxt=rated.length?avg.toFixed(1):'—';
+  const noVisit=U.branches.filter(b=>!b.notes.length).length;
+  const dist=[0,0,0,0,0];rated.forEach(r=>dist[r-1]++);
+  const distMax=Math.max(1,...dist);
+  const ranked=U.branches.filter(b=>b.notes.some(n=>n.overall)).map(b=>({name:b.name,color:b.color,avg:+branchAvg(b),cnt:b.notes.length})).sort((a,c)=>c.avg-a.avg).slice(0,5);
+  const freq={};const teacherSet=new Set();
+  U.branches.forEach(b=>b.notes.forEach(n=>(n.teacherEntries||[]).forEach(te=>{
+    if(te.name)teacherSet.add(b.id+'|'+te.name);
+    (te.needs||[]).forEach(x=>freq[x]=(freq[x]||0)+1)})));
+  const topNeeds=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const nTeachers=teacherSet.size;
+  const health=rated.length?Math.round(avg/5*100):0;
+
+  let h=`<div class="section-title"><div><h3>لوحة المتابعة</h3><p>ملخّص حيّ لأداء الأفرع</p></div></div>
+    <div class="hero-stat">
+      <div class="hl">مؤشر الأداء العام</div>
+      <div class="hbig">${health}%</div>
+      <div class="hsub"><span class="hero-badge">متوسط ${avgTxt} من 5</span><span class="hero-badge">${nN} زيارة</span><span class="hero-badge">${nB} فرع</span></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="ic" style="background:var(--gold-soft);color:var(--gold-d)">🏫</div><div class="n">${nB}</div><div class="l">فرع مُشرَف عليه</div></div>
+      <div class="stat"><div class="ic" style="background:var(--silver-soft);color:var(--silver)">📝</div><div class="n">${nN}</div><div class="l">ملاحظة زيارة</div></div>
+      <div class="stat"><div class="ic" style="background:var(--gold-soft);color:var(--gold-d)">⭐</div><div class="n">${avgTxt}</div><div class="l">متوسط التقييم</div></div>
+      <div class="stat"><div class="ic" style="background:var(--silver-soft);color:var(--silver)">👩‍🏫</div><div class="n">${nTeachers}</div><div class="l">معلمة متابَعة</div></div>
+    </div>`;
+
+  if(rated.length){
+    h+=`<div class="card"><div style="font-size:15px;font-weight:800;color:var(--charcoal);margin-bottom:14px">توزيع التقييمات</div>`;
+    const labels=['يحتاج تحسين','مقبول','جيد','جيد جداً','ممتاز'];
+    for(let i=4;i>=0;i--){const c=dist[i],pct=Math.round(c/distMax*100);
+      h+=`<div class="bar-item"><div class="bl"><b>${'★'.repeat(i+1)} <span style="color:var(--ink2);font-weight:600">${labels[i]}</span></b><span>${c} زيارة</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></div>`}
+    h+=`</div>`;
+  }
+  if(ranked.length){
+    h+=`<div class="card"><div style="font-size:15px;font-weight:800;color:var(--charcoal);margin-bottom:8px">🏆 ترتيب الأفرع بالأداء</div>`;
+    ranked.forEach((r,i)=>{h+=`<div class="rank-row"><div class="rank-num" style="background:${branchGrad(r.color)}">${i+1}</div>
+      <div class="rn">${esc(r.name)}</div><div class="rv"><span class="stars" style="font-size:13px">${stars(r.avg)}</span> ${r.avg.toFixed(1)}</div></div>`});
+    h+=`</div>`;
+  }
+  if(topNeeds.length){
+    h+=`<div class="card"><div style="font-size:15px;font-weight:800;color:var(--charcoal);margin-bottom:14px">🎯 أبرز جوانب التطوير</div>`;
+    const mx=topNeeds[0][1];
+    topNeeds.forEach(([k,c])=>{h+=`<div class="bar-item"><div class="bl"><b>${esc(k)}</b><span>${c}×</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/mx*100)}%;background:linear-gradient(90deg,var(--silver),var(--charcoal-l))"></div></div></div>`});
+    h+=`</div>`;
+  }
+  if(!nN)h=`<div class="section-title"><div><h3>لوحة المتابعة</h3></div></div><div class="empty"><div class="e">📊</div><b>لا بيانات بعد</b><p>ستظهر المؤشرات والرسوم فور تسجيل الملاحظات.</p></div>`;
+  h+=`<div class="brand-footer"><img src="logo.png" alt="">المدرسة القرآنية الوقفية · ولاية العامرات</div>`;
+  v.innerHTML=h;
+  requestAnimationFrame(()=>v.querySelectorAll('.bar-fill').forEach(el=>{const w=el.style.width;el.style.width='0';requestAnimationFrame(()=>el.style.width=w)}))}
+
+function renderSettings(){
+  document.getElementById('viewSettings').innerHTML=`<div class="section-title"><div><h3>الإعدادات</h3><p>حافظة: ${esc(U.name)}</p></div></div>
+    <div class="settings-item" onclick="manageLists()"><div class="si" style="background:var(--grad-gold)">📋</div><div class="st"><b>القوائم القابلة للتخصيص</b><span>عدّل خيارات نوع الزيارة، المرافق، القوة والتطوير</span></div><span class="go">‹</span></div>
+    <div class="settings-item" onclick="exportData()"><div class="si" style="background:var(--grad-dark)">📦</div><div class="st"><b>تصدير نسخة احتياطية</b><span>احفظ بياناتك في ملف لنقله لجهاز آخر</span></div><span class="go">‹</span></div>
+    <div class="settings-item" onclick="document.getElementById('importFile').click()"><div class="si" style="background:linear-gradient(145deg,var(--silver),var(--silver-l))">📥</div><div class="st"><b>استيراد نسخة</b><span>استعد بياناتك من ملف محفوظ</span></div><span class="go">‹</span></div>
+    <input type="file" id="importFile" accept=".json" class="hide" onchange="importData(this)">
+    <div class="settings-item" onclick="changePass()"><div class="si" style="background:var(--grad-gold)">🔑</div><div class="st"><b>تغيير كلمة السر</b><span>حدّث كلمة سر الدخول</span></div><span class="go">‹</span></div>
+    <div class="settings-item" onclick="logout()"><div class="si" style="background:var(--grad-dark)">⏻</div><div class="st"><b>تسجيل الخروج</b><span>حافظة أخرى أو حماية بياناتك</span></div><span class="go">‹</span></div>
+    <div class="brand-footer"><img src="logo.png" alt="">سجل المتابعة · جميع البيانات محفوظة محلياً على هذا الجهاز فقط<br>المدرسة القرآنية الوقفية · ولاية العامرات</div>`}
+const LIST_LABELS={visitType:'أنواع الزيارات',facilities:'حالات المرافق',overall:'مسميات التقييم',strengths:'نقاط القوة',needs:'جوانب التطوير'};
+function manageLists(){
+  let h='<p style="font-size:13px;color:var(--ink2);margin:0 0 16px">هذه الخيارات تظهر كأزرار عند تسجيل الملاحظات — عدّلها كما تريد.</p>';
+  Object.keys(LIST_LABELS).forEach(k=>{h+=`<div class="detail-block"><h4><span class="dot"></span>${LIST_LABELS[k]}</h4>
+    <div class="choices" id="ls_${k}">${U.lists[k].map((o,i)=>chipEdit(k,o,i)).join('')}</div>
+    <div style="display:flex;gap:8px;margin-top:11px"><input class="fld" id="add_${k}" placeholder="أضف خياراً..." style="flex:1;padding:11px 13px">
+      <button class="icobtn" style="background:var(--grad-gold);width:48px;height:48px;font-size:22px" onclick="addOpt('${k}')">+</button></div></div>`});
+  openSheet('تخصيص القوائم',h)}
+function chipEdit(k,o,i){return `<span class="tag" style="display:inline-flex;align-items:center;gap:7px;padding:8px 12px;font-size:13px">${esc(o)}<button onclick="delOpt('${k}',${i})" style="color:var(--danger);font-size:16px;line-height:1;padding:0">×</button></span>`}
+function addOpt(k){const inp=document.getElementById('add_'+k),val=inp.value.trim();if(!val)return;
+  U.lists[k].push(val);save();document.getElementById('ls_'+k).innerHTML=U.lists[k].map((o,i)=>chipEdit(k,o,i)).join('');inp.value=''}
+function delOpt(k,i){U.lists[k].splice(i,1);save();document.getElementById('ls_'+k).innerHTML=U.lists[k].map((o,i)=>chipEdit(k,o,i)).join('')}
+function exportData(){
+  const payload={app:'sijil',v:1,user:SESSION,name:U.name,exported:new Date().toISOString(),data:U};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  deliverFile(blob,'سجل_'+U.name+'_'+today().replace(/\//g,'-')+'.json','application/json')}
+function importData(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const p=JSON.parse(r.result);if(!p.data||!p.data.branches)throw 0;
+    if(!confirm('سيتم استبدال بيانات حافظتك الحالية بالبيانات المستوردة. متابعة؟'))return;
+    U.branches=p.data.branches;U.lists=p.data.lists||defaultLists();U.nextId=p.data.nextId||0;
+    save();toast('تم استيراد البيانات بنجاح');go('branches')}catch(e){toast('الملف غير صالح')}};
+  r.readAsText(f);inp.value=''}
+function changePass(){openSheet('تغيير كلمة السر',`
+  <div class="field-group"><label>كلمة السر الحالية</label><input id="op" type="password" class="fld"></div>
+  <div class="field-group"><label>كلمة السر الجديدة</label><input id="np" type="password" class="fld"></div>
+  <div class="rowbtns"><button class="primary" onclick="savePass()">حفظ</button></div>`)}
+function savePass(){if(op.value!==U.pass)return toast('كلمة السر الحالية غير صحيحة');
+  if(!np.value)return toast('أدخل كلمة سر جديدة');U.pass=np.value;save();closeSheet();toast('تم تغيير كلمة السر')}
+
+function openSheet(title,body){document.getElementById('sheetTitle').textContent=title;
+  document.getElementById('sheetBody').innerHTML=body;document.getElementById('sheetBg').classList.add('on')}
+function closeSheet(){document.getElementById('sheetBg').classList.remove('on')}
+
+function today(){return dateHuman(new Date().toISOString().slice(0,10))}
+function dateISO(human){if(!human)return new Date().toISOString().slice(0,10);
+  const m=human.match(/(\d+)\/(\d+)\/(\d+)/);if(m)return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;return human}
+function dateHuman(iso){if(!iso)return today();const p=iso.split('-');return `${+p[2]}/${+p[1]}/${p[0]}`}
+
+/* ربط الأحداث — إصلاح مشكلة الضغط مرتين عبر معالجة النقر بعد إغلاق لوحة المفاتيح */
+function bindTap(el,fn){if(!el)return;el.addEventListener('click',e=>{e.preventDefault();fn()})}
+bindTap(document.getElementById('btnLogin'),doLogin);
+bindTap(document.getElementById('btnReg'),doRegister);
+bindTap(document.getElementById('btnLogout'),logout);
+bindTap(document.getElementById('btnForgot'),forgotPass);
+bindTap(document.getElementById('sheetClose'),closeSheet);
+document.getElementById('sheetBg').addEventListener('click',e=>{if(e.target.id==='sheetBg')closeSheet()});
+document.querySelectorAll('.navbar button').forEach(b=>bindTap(b,()=>go(b.dataset.nav)));
+['lUser','lPass'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doLogin()}}));
+['rName','rUser','rPass'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doRegister()}}));
+
+(function(){const s=localStorage.getItem('sijil_session');if(s&&DB.users[s])startSession(s)})();
+</script>
+</body>
+</html>
